@@ -9,7 +9,7 @@ public class PublicTransportEditorPlugin extends Plugin {
     public PublicTransportEditorPlugin(PluginInformation info) {
         super(info);
 
-        EditorWindow editorWindow = new EditorWindow(null, null);
+        EditorWindow editorWindow = new EditorWindow();
 
         // test
         OsmDataLayer layer = MainApplication.getLayerManager().getActiveDataLayer();
