@@ -2,7 +2,10 @@ package PublicTransportEditor;
 
 import static org.openstreetmap.josm.tools.I18n.tr;
 
-import javax.swing.JFrame;
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.JButton;
+import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
 import org.openstreetmap.josm.data.osm.Relation;
@@ -10,11 +13,17 @@ import org.openstreetmap.josm.gui.ExtendedDialog;
 import org.openstreetmap.josm.gui.MainApplication;
 import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 import org.openstreetmap.josm.tools.CheckParameterUtil;
+import org.openstreetmap.josm.tools.ImageProvider;
 
 import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
 import javafx.scene.Scene;
-import javafx.scene.layout.VBox;
+
+import java.awt.event.ActionEvent;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class EditorWindow extends ExtendedDialog {
     private static final long serialVersionUID = 1L;
@@ -22,42 +31,45 @@ public class EditorWindow extends ExtendedDialog {
     private transient Relation relation;
     private transient Relation relationSnapshot;
 
-    private EditorWindowUI windowUI;
-    private static VBox pane;
+    private JFXPanel fxPanel;
 
-    // The window only initialize at mapFrameInitialized
+    /**
+     * Generate a EditorWindow only at mapFrameInitialized().
+     */
     protected EditorWindow() {
         super(MainApplication.getMainFrame(), "", new String[] { "Apply Changes", "Cancel" }, false, false);
 
-        this.layer = null;
-        this.relation = null;
+        layer = null;
+        relation = null;
 
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                JFrame frame = new JFrame();
-                final JFXPanel fxPanel = new JFXPanel();
-
-                Platform.runLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        windowUI = new EditorWindowUI();
-                        pane = new VBox();
-                        fxPanel.setScene(new Scene(pane));
-
-                    }
-                });
-                frame.add(fxPanel);
-                frame.setVisible(true);
-            }
+        fxPanel = new JFXPanel();
+        SwingUtilities.invokeLater(() -> {
+            this.add(fxPanel);
+            Platform.runLater(() -> fxPanel.setScene(createScene()));
         });
+
+        getContentPane().add(fxPanel, BorderLayout.CENTER);
+
+        JPanel bp = new JPanel(new FlowLayout());
+        bp.add(new JButton(new ApplyAction()));
+        bp.add(new JButton(new CancelAction()));
+        getContentPane().add(bp, BorderLayout.SOUTH);
+    }
+
+    private Scene createScene() {
+        EditorWindowUI windowUI = new EditorWindowUI();
+        windowUI.setVisible(true);
+        return new Scene(windowUI, 500, 350);
     }
 
     public EditorWindow showEditor(OsmDataLayer layer, Relation relation) {
         // CheckParameterUtil.ensureParameterNotNull(layer, "layer");
+        Logger.getLogger("a").log(Level.INFO, "a2");
         setRelation(relation);
-        if (isVisible())
-            showDialog();
+        setSize(500, 350);
+        setResizable(false);
+        if (!isVisible())
+            setVisible(true);
         return this;
     }
 
@@ -94,9 +106,38 @@ public class EditorWindow extends ExtendedDialog {
             relationSnapshot.setMembers(null);
         relationSnapshot = snapshot;
     }
+}
 
-    private static void initFX(JFXPanel fxPanel) {
-        // This method is invoked on JavaFX thread
-        fxPanel.setScene(new Scene(pane));
+class ApplyAction extends AbstractAction {
+    private static final long serialVersionUID = 1L;
+
+    protected ApplyAction() {
+        putValue(SHORT_DESCRIPTION, tr("Apply the updates and close the dialog"));
+        new ImageProvider("ok").getResource().attachImageIcon(this);
+        putValue(NAME, tr("OK"));
     }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        // TODO Auto-generated method stub
+
+    }
+
+}
+
+class CancelAction extends AbstractAction {
+    private static final long serialVersionUID = 1L;
+
+    protected CancelAction() {
+        putValue(SHORT_DESCRIPTION, tr("Cancel the updates and close the dialog"));
+        new ImageProvider("cancel").getResource().attachImageIcon(this);
+        putValue(NAME, tr("Cancel"));
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        // TODO Auto-generated method stub
+
+    }
+
 }
