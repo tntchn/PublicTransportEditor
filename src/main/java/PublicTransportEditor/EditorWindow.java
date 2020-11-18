@@ -2,28 +2,31 @@ package PublicTransportEditor;
 
 import static org.openstreetmap.josm.tools.I18n.tr;
 
+import java.awt.event.ActionEvent;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.embed.swing.JFXPanel;
+import javafx.scene.Scene;
+
 import javax.swing.AbstractAction;
-import javax.swing.Action;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
+import org.openstreetmap.josm.data.osm.OsmPrimitiveType;
 import org.openstreetmap.josm.data.osm.Relation;
+import org.openstreetmap.josm.data.osm.RelationMember;
+import org.openstreetmap.josm.data.osm.SimplePrimitiveId;
 import org.openstreetmap.josm.gui.ExtendedDialog;
 import org.openstreetmap.josm.gui.MainApplication;
 import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 import org.openstreetmap.josm.tools.CheckParameterUtil;
 import org.openstreetmap.josm.tools.ImageProvider;
-
-import javafx.application.Platform;
-import javafx.embed.swing.JFXPanel;
-import javafx.scene.Scene;
-
-import java.awt.event.ActionEvent;
-import java.awt.BorderLayout;
-import java.awt.FlowLayout;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.openstreetmap.josm.tools.Logging;
 
 public class EditorWindow extends ExtendedDialog {
     private static final long serialVersionUID = 1L;
@@ -31,7 +34,7 @@ public class EditorWindow extends ExtendedDialog {
     private transient Relation relation;
     private transient Relation relationSnapshot;
 
-    private JFXPanel fxPanel;
+    private final JFXPanel fxPanel;
 
     /**
      * Generate a EditorWindow only at mapFrameInitialized().
@@ -64,9 +67,20 @@ public class EditorWindow extends ExtendedDialog {
 
     public EditorWindow showEditor(OsmDataLayer layer, Relation relation) {
         // CheckParameterUtil.ensureParameterNotNull(layer, "layer");
-        Logger.getLogger("a").log(Level.INFO, "a2");
         setRelation(relation);
-        setSize(500, 350);
+        setSize(500, 600);
+        setResizable(false);
+        if (!isVisible())
+            setVisible(true);
+        return this;
+    }
+
+    public EditorWindow showEditor(OsmDataLayer layer, long relationID) {
+        // CheckParameterUtil.ensureParameterNotNull(layer, "layer");
+        SimplePrimitiveId pid = new SimplePrimitiveId(relationID, OsmPrimitiveType.RELATION);
+        Relation r = (Relation) MainApplication.getLayerManager().getEditLayer().data.getPrimitiveById(pid);
+        setRelation(r);
+        setSize(500, 600);
         setResizable(false);
         if (!isVisible())
             setVisible(true);
@@ -94,6 +108,14 @@ public class EditorWindow extends ExtendedDialog {
     protected final void setRelation(Relation relation) {
         setRelationSnapshot((relation == null) ? null : new Relation(relation));
         this.relation = relation;
+
+        SwingUtilities.invokeLater(() -> {
+            Platform.runLater(() -> {
+                ((EditorWindowUI) fxPanel.getScene().getRoot()).setUIRelation(relation);
+                Logging.warn("SET UIRELATION TO NEW RELATION");
+            });
+        });
+
         // updateTitle();
     }
 
@@ -106,38 +128,42 @@ public class EditorWindow extends ExtendedDialog {
             relationSnapshot.setMembers(null);
         relationSnapshot = snapshot;
     }
-}
 
-class ApplyAction extends AbstractAction {
-    private static final long serialVersionUID = 1L;
-
-    protected ApplyAction() {
-        putValue(SHORT_DESCRIPTION, tr("Apply the updates and close the dialog"));
-        new ImageProvider("ok").getResource().attachImageIcon(this);
-        putValue(NAME, tr("OK"));
+    class ApplyAction extends AbstractAction {
+        private static final long serialVersionUID = 1L;
+    
+        protected ApplyAction() {
+            putValue(SHORT_DESCRIPTION, tr("Apply the updates and close the dialog"));
+            new ImageProvider("ok").getResource().attachImageIcon(this);
+            putValue(NAME, tr("OK"));
+        }
+    
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            // TODO Auto-generated method stub
+            SimplePrimitiveId pid = new SimplePrimitiveId(11601762, OsmPrimitiveType.RELATION);
+            Relation r = (Relation) MainApplication.getLayerManager().getEditLayer().data.getPrimitiveById(pid);
+            setRelation(r);
+            ObservableList<RelationMember> members = FXCollections.observableArrayList(r.getMembers());
+            if (members.isEmpty()) Logging.warn("IS EMPTY");
+            else Logging.warn("IS NOT EMPTY");
+        }
     }
-
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        // TODO Auto-generated method stub
-
+    
+    class CancelAction extends AbstractAction {
+        private static final long serialVersionUID = 1L;
+    
+        protected CancelAction() {
+            putValue(SHORT_DESCRIPTION, tr("Cancel the updates and close the dialog"));
+            new ImageProvider("cancel").getResource().attachImageIcon(this);
+            putValue(NAME, tr("Cancel"));
+        }
+    
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            // TODO Auto-generated method stub
+    
+        }
+    
     }
-
-}
-
-class CancelAction extends AbstractAction {
-    private static final long serialVersionUID = 1L;
-
-    protected CancelAction() {
-        putValue(SHORT_DESCRIPTION, tr("Cancel the updates and close the dialog"));
-        new ImageProvider("cancel").getResource().attachImageIcon(this);
-        putValue(NAME, tr("Cancel"));
-    }
-
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        // TODO Auto-generated method stub
-
-    }
-
 }
